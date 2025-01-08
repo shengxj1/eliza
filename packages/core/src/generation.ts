@@ -688,7 +688,7 @@ export async function generateText({
             case ModelProviderName.GAIANET: {
                 elizaLogger.debug("Initializing GAIANET model.");
 
-                var baseURL = models[provider].endpoint;
+                let baseURL = models[provider].endpoint;
                 if (!baseURL) {
                     switch (modelClass) {
                         case ModelClass.SMALL:

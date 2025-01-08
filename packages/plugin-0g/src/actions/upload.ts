@@ -109,7 +109,7 @@ export const zgUpload: Action = {
             }
 
             const file = await ZgFile.fromFilePath(filePath);
-            var [tree, err] = await file.merkleTree();
+            let [tree, err] = await file.merkleTree();
             if (err === null) {
                 console.log("File Root Hash: ", tree.rootHash());
             } else {
@@ -122,7 +122,7 @@ export const zgUpload: Action = {
             const indexer = new Indexer(zgIndexerRpc);
             const flowContract = getFlowContract(flowAddr, signer);
 
-            var [tx, err] = await indexer.upload(
+            let [tx, err] = await indexer.upload(
                 file,
                 0,
                 zgEvmRpc,
