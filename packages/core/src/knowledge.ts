@@ -66,24 +66,21 @@ async function get(
 
 async function set(
     runtime: AgentRuntime,
-    { id, content }: KnowledgeItem,
-    chunkSize = 512,
-    bleed = 20
+    item: KnowledgeItem,
+    chunkSize: number = 512,
+    bleed: number = 20
 ) {
-    const { agentId } = runtime;
-    const timestamp = Date.now();
-
     await runtime.documentsManager.createMemory({
-        id,
-        agentId,
-        roomId: agentId,
-        userId: agentId,
-        createdAt: timestamp,
-        content,
+        id: item.id,
+        agentId: runtime.agentId,
+        roomId: runtime.agentId,
+        userId: runtime.agentId,
+        createdAt: Date.now(),
+        content: item.content,
         embedding: getEmbeddingZeroVector(),
     });
 
-    const preprocessed = preprocess(content);
+    const preprocessed = preprocess(item.content.text);
     const fragments = await splitChunks(preprocessed, chunkSize, bleed);
 
     for (const fragment of fragments) {
@@ -91,13 +88,13 @@ async function set(
         await runtime.knowledgeManager.createMemory({
             // We namespace the knowledge base uuid to avoid id
             // collision with the document above.
-            id: stringToUuid(id + fragment),
+            id: stringToUuid(item.id + fragment),
             roomId: runtime.agentId,
             agentId: runtime.agentId,
             userId: runtime.agentId,
             createdAt: Date.now(),
             content: {
-                source: id,
+                source: item.id,
                 text: fragment,
             },
             embedding,

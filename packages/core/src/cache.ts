@@ -14,12 +14,10 @@ export interface ICacheAdapter {
 }
 
 export class MemoryCacheAdapter implements ICacheAdapter {
-    private data = new Map<string, string>();
+    data: Map<string, string>;
 
-    constructor(initialData?: Map<string, string>) {
-        if (initialData) {
-            this.data = initialData;
-        }
+    constructor(initalData?: Map<string, string>) {
+        this.data = initalData ?? new Map<string, string>();
     }
 
     async get(key: string): Promise<string | undefined> {
@@ -50,11 +48,11 @@ export class FsCacheAdapter implements ICacheAdapter {
     async set(key: string, value: string): Promise<void> {
         try {
             const filePath = path.join(this.dataDir, key);
-            // Ensure directory exists
+            // Ensure the directory exists
             await fs.mkdir(path.dirname(filePath), { recursive: true });
             await fs.writeFile(filePath, value, "utf8");
         } catch (error) {
-            console.error(`Failed to write cache file: ${error}`);
+            console.error(error);
         }
     }
 
@@ -62,11 +60,8 @@ export class FsCacheAdapter implements ICacheAdapter {
         try {
             const filePath = path.join(this.dataDir, key);
             await fs.unlink(filePath);
-        } catch (error) {
-            // Skip if file doesn't exist
-            if (error.code !== 'ENOENT') {
-                console.error(`Failed to delete cache file: ${error}`);
-            }
+        } catch {
+            // console.error(error);
         }
     }
 }
@@ -101,18 +96,20 @@ export class CacheManager<CacheAdapter extends ICacheAdapter = ICacheAdapter>
 
     async get<T = unknown>(key: string): Promise<T | undefined> {
         const data = await this.adapter.get(key);
-        if (!data) return undefined;
 
-        const { value, expires } = JSON.parse(data) as {
-            value: T;
-            expires: number;
-        };
+        if (data) {
+            const { value, expires } = JSON.parse(data) as {
+                value: T;
+                expires: number;
+            };
 
-        if (!expires || expires > Date.now()) {
-            return value;
+            if (!expires || expires > Date.now()) {
+                return value;
+            }
+
+            this.adapter.delete(key).catch(() => {});
         }
 
-        await this.adapter.delete(key).catch(() => {});
         return undefined;
     }
 

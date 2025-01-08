@@ -328,8 +328,9 @@ export async function generateText({
                     model: openai.languageModel(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -362,8 +363,12 @@ export async function generateText({
                                 JSON.stringify(options, null, 2)
                             );
                             const clonedResponse = fetching.clone();
-                            const data = await clonedResponse.json();
-                            elizaLogger.info("Response data:", JSON.stringify(data, null, 2));
+                            clonedResponse.json().then((data) => {
+                                elizaLogger.info(
+                                    "Response data: ",
+                                    JSON.stringify(data, null, 2)
+                                );
+                            });
                         }
                         return fetching;
                     },
@@ -373,8 +378,9 @@ export async function generateText({
                     model: openai.languageModel(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     temperature: temperature,
                     maxTokens: max_response_length,
                     frequencyPenalty: frequency_penalty,
@@ -396,8 +402,9 @@ export async function generateText({
                     model: google(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -425,8 +432,9 @@ export async function generateText({
                     model: anthropic.languageModel(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -454,8 +462,9 @@ export async function generateText({
                     model: anthropic.languageModel(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -487,8 +496,9 @@ export async function generateText({
                     }),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -512,8 +522,9 @@ export async function generateText({
                     prompt: context,
                     temperature: temperature,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -566,8 +577,9 @@ export async function generateText({
                     prompt: context,
                     temperature: temperature,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -596,8 +608,9 @@ export async function generateText({
                     prompt: context,
                     temperature: temperature,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -655,8 +668,9 @@ export async function generateText({
                     prompt: context,
                     system:
                         customSystemPrompt ??
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     temperature: temperature,
@@ -674,7 +688,7 @@ export async function generateText({
             case ModelProviderName.GAIANET: {
                 elizaLogger.debug("Initializing GAIANET model.");
 
-                let baseURL = models[provider].endpoint;
+                var baseURL = models[provider].endpoint;
                 if (!baseURL) {
                     switch (modelClass) {
                         case ModelClass.SMALL:
@@ -707,8 +721,9 @@ export async function generateText({
                     model: openai.languageModel(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -736,8 +751,9 @@ export async function generateText({
                     model: galadriel.languageModel(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     maxSteps: maxSteps,
@@ -764,8 +780,9 @@ export async function generateText({
                     model: venice.languageModel(model),
                     prompt: context,
                     system:
-                        runtime.character?.system ??
-                        settings.SYSTEM_PROMPT,
+                        runtime.character.system ??
+                        settings.SYSTEM_PROMPT ??
+                        undefined,
                     tools: tools,
                     onStepFinish: onStepFinish,
                     temperature: temperature,
@@ -900,10 +917,12 @@ export async function generateTrueOrFalse({
 }): Promise<boolean> {
     let retryDelay = 1000;
 
-    const stop = [...new Set([
-        ...(models[runtime.modelProvider].settings.stop ?? []),
-        "\n"
-    ])] as string[];
+    const stop = Array.from(
+        new Set([
+            ...(models[runtime.modelProvider].settings.stop || []),
+            ["\n"],
+        ])
+    ) as string[];
 
     while (true) {
         try {
@@ -1132,16 +1151,36 @@ export const generateImage = async (
         imageModelProvider: model,
     });
 
-    const apiKey = runtime.imageModelProvider === runtime.modelProvider
-        ? runtime.token
-        : runtime.getSetting(`${runtime.imageModelProvider.toUpperCase()}_API_KEY`) ?? (
-            runtime.getSetting("HEURIST_API_KEY") ??
-            runtime.getSetting("TOGETHER_API_KEY") ??
-            runtime.getSetting("FAL_API_KEY") ??
-            runtime.getSetting("OPENAI_API_KEY") ??
-            runtime.getSetting("VENICE_API_KEY") ??
-            runtime.getSetting("LIVEPEER_GATEWAY_URL")
-        );
+    const apiKey =
+        runtime.imageModelProvider === runtime.modelProvider
+            ? runtime.token
+            : (() => {
+                  // First try to match the specific provider
+                  switch (runtime.imageModelProvider) {
+                      case ModelProviderName.HEURIST:
+                          return runtime.getSetting("HEURIST_API_KEY");
+                      case ModelProviderName.TOGETHER:
+                          return runtime.getSetting("TOGETHER_API_KEY");
+                      case ModelProviderName.FAL:
+                          return runtime.getSetting("FAL_API_KEY");
+                      case ModelProviderName.OPENAI:
+                          return runtime.getSetting("OPENAI_API_KEY");
+                      case ModelProviderName.VENICE:
+                          return runtime.getSetting("VENICE_API_KEY");
+                      case ModelProviderName.LIVEPEER:
+                          return runtime.getSetting("LIVEPEER_GATEWAY_URL");
+                      default:
+                          // If no specific match, try the fallback chain
+                          return (
+                              runtime.getSetting("HEURIST_API_KEY") ??
+                              runtime.getSetting("TOGETHER_API_KEY") ??
+                              runtime.getSetting("FAL_API_KEY") ??
+                              runtime.getSetting("OPENAI_API_KEY") ??
+                              runtime.getSetting("VENICE_API_KEY") ??
+                              runtime.getSetting("LIVEPEER_GATEWAY_URL")
+                          );
+                  }
+              })();
     try {
         if (runtime.imageModelProvider === ModelProviderName.HEURIST) {
             const response = await fetch(

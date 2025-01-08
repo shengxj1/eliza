@@ -73,12 +73,19 @@ async function getRemoteEmbedding(
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            ...(options.apiKey && { Authorization: `Bearer${options.apiKey}` }),
+            ...(options.apiKey
+                ? {
+                      Authorization: `Bearer ${options.apiKey}`,
+                  }
+                : {}),
         },
         body: JSON.stringify({
             input,
             model: options.model,
-            dimensions: options.dimensions ?? options.length ?? getEmbeddingConfig().dimensions,
+            dimensions:
+                options.dimensions ||
+                options.length ||
+                getEmbeddingConfig().dimensions, // Prefer dimensions, fallback to length
         }),
     };
 
@@ -92,8 +99,12 @@ async function getRemoteEmbedding(
             );
         }
 
-        const { data: [{ embedding }] = [{ embedding: [] }] }= await response.json();
-        return embedding;
+        interface EmbeddingResponse {
+            data: Array<{ embedding: number[] }>;
+        }
+
+        const data: EmbeddingResponse = await response.json();
+        return data?.data?.[0].embedding;
     } catch (e) {
         elizaLogger.error("Full error details:", e);
         throw e;
@@ -101,7 +112,10 @@ async function getRemoteEmbedding(
 }
 
 export function getEmbeddingType(runtime: IAgentRuntime): "local" | "remote" {
-    const isNode = Boolean(process?.versions?.node);
+    const isNode =
+        typeof process !== "undefined" &&
+        process.versions != null &&
+        process.versions.node != null;
 
     // Use local embedding if:
     // - Running in Node.js
@@ -171,7 +185,7 @@ export async function embed(runtime: IAgentRuntime, input: string) {
     if (cachedEmbedding) return cachedEmbedding;
 
     const config = getEmbeddingConfig();
-    const isNode = Boolean(process?.versions?.node);
+    const isNode = typeof process !== "undefined" && process.versions?.node;
 
     // Determine which embedding path to use
     if (config.provider === EmbeddingProvider.OpenAI) {
@@ -234,7 +248,10 @@ export async function embed(runtime: IAgentRuntime, input: string) {
         elizaLogger.debug("DEBUG - Inside getLocalEmbedding function");
 
         // Check if we're in Node.js environment
-        const isNode = Boolean(process?.versions?.node);
+        const isNode =
+            typeof process !== "undefined" &&
+            process.versions != null &&
+            process.versions.node != null;
 
         if (!isNode) {
             elizaLogger.warn(
@@ -370,13 +387,20 @@ export async function embed(runtime: IAgentRuntime, input: string) {
         }
     }
 
-    async function retrieveCachedEmbedding(runtime: IAgentRuntime, input: string) {
+    async function retrieveCachedEmbedding(
+        runtime: IAgentRuntime,
+        input: string
+    ) {
         if (!input) {
             elizaLogger.log("No input to retrieve cached embedding for");
             return null;
         }
 
-        const [firstResult] = await runtime.messageManager.getCachedEmbeddings(input);
-        return firstResult?.embedding ?? null;
+        const similaritySearchResult =
+            await runtime.messageManager.getCachedEmbeddings(input);
+        if (similaritySearchResult.length > 0) {
+            return similaritySearchResult[0].embedding;
+        }
+        return null;
     }
 }

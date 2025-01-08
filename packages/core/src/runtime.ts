@@ -179,7 +179,7 @@ export class AgentRuntime implements IAgentRuntime {
     }
 
     async registerService(service: Service): Promise<void> {
-        const { serviceType } = service;
+        const serviceType = service.serviceType;
         elizaLogger.log("Registering service:", serviceType);
 
         if (this.services.has(serviceType)) {
@@ -667,12 +667,12 @@ export class AgentRuntime implements IAgentRuntime {
             result
         ) as unknown as string[];
 
-        await Promise.all(
-            this.evaluators
-                .filter(evaluator => evaluators.includes(evaluator.name))
-                .filter(evaluator => evaluator.handler)
-                .map(evaluator => evaluator.handler(this, message, state, {}, callback))
-        );
+        for (const evaluator of this.evaluators) {
+            if (!evaluators.includes(evaluator.name)) continue;
+
+            if (evaluator.handler)
+                await evaluator.handler(this, message, state, {}, callback);
+        }
 
         return evaluators;
     }
@@ -742,9 +742,26 @@ export class AgentRuntime implements IAgentRuntime {
         userScreenName?: string,
         source?: string
     ) {
-        await this.ensureUserExists(userId, userName, userScreenName, source);
-        await this.ensureRoomExists(roomId);
-        await this.ensureParticipantInRoom(userId, roomId);
+        await Promise.all([
+            this.ensureUserExists(
+                this.agentId,
+                this.character.name ?? "Agent",
+                this.character.name ?? "Agent",
+                source
+            ),
+            this.ensureUserExists(
+                userId,
+                userName ?? "User" + userId,
+                userScreenName ?? "User" + userId,
+                source
+            ),
+            this.ensureRoomExists(roomId),
+        ]);
+
+        await Promise.all([
+            this.ensureParticipantInRoom(userId, roomId),
+            this.ensureParticipantInRoom(this.agentId, roomId),
+        ]);
     }
 
     /**

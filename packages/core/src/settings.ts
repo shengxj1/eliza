@@ -3,24 +3,28 @@ import fs from "fs";
 import path from "path";
 import elizaLogger from "./logger.ts";
 
-const { USE_OPENAI_EMBEDDING, USE_OLLAMA_EMBEDDING, OLLAMA_EMBEDDING_MODEL = "mxbai-embed-large" } = process.env;
-
 elizaLogger.info("Loading embedding settings:", {
-    USE_OPENAI_EMBEDDING,
-    USE_OLLAMA_EMBEDDING,
-    OLLAMA_EMBEDDING_MODEL,
+    USE_OPENAI_EMBEDDING: process.env.USE_OPENAI_EMBEDDING,
+    USE_OLLAMA_EMBEDDING: process.env.USE_OLLAMA_EMBEDDING,
+    OLLAMA_EMBEDDING_MODEL:
+        process.env.OLLAMA_EMBEDDING_MODEL || "mxbai-embed-large",
 });
 
 // Add this logging block
 elizaLogger.info("Loading character settings:", {
     CHARACTER_PATH: process.env.CHARACTER_PATH,
     ARGV: process.argv,
-    CHARACTER_ARG: process.argv.find(arg => arg.startsWith("--character=")),
+    CHARACTER_ARG: process.argv.find((arg) => arg.startsWith("--character=")),
     CWD: process.cwd(),
 });
 
-type Settings = Record<string, string | undefined>;
-type NamespacedSettings = Record<string, Settings>;
+interface Settings {
+    [key: string]: string | undefined;
+}
+
+interface NamespacedSettings {
+    [namespace: string]: Settings;
+}
 
 let environmentSettings: Settings = {};
 
@@ -109,10 +113,14 @@ export function loadEnvConfig(): Settings {
  * @param {string} [defaultValue] - Optional default value if key doesn't exist
  * @returns {string|undefined} The environment variable value or default value
  */
-export function getEnvVariable(key: string, defaultValue?: string): string | undefined {
-    return isBrowser()
-        ? environmentSettings[key] ?? defaultValue
-        : process.env[key] ?? defaultValue;
+export function getEnvVariable(
+    key: string,
+    defaultValue?: string
+): string | undefined {
+    if (isBrowser()) {
+        return environmentSettings[key] || defaultValue;
+    }
+    return process.env[key] || defaultValue;
 }
 
 /**
@@ -121,9 +129,10 @@ export function getEnvVariable(key: string, defaultValue?: string): string | und
  * @returns {boolean} True if the environment variable exists
  */
 export function hasEnvVariable(key: string): boolean {
-    return isBrowser()
-        ? Object.hasOwn(environmentSettings, key)
-        : Object.hasOwn(process.env, key);
+    if (isBrowser()) {
+        return key in environmentSettings;
+    }
+    return key in process.env;
 }
 
 // Initialize settings based on environment
@@ -142,19 +151,18 @@ export default settings;
 
 // Add this function to parse namespaced settings
 function parseNamespacedSettings(env: Settings): NamespacedSettings {
-    return Object.entries(env).reduce((namespaced, [key, value]) => {
-        if (!value) return namespaced;
+    const namespaced: NamespacedSettings = {};
+
+    for (const [key, value] of Object.entries(env)) {
+        if (!value) continue;
 
         const [namespace, ...rest] = key.split(".");
-        if (!namespace || rest.length === 0) return namespaced;
+        if (!namespace || rest.length === 0) continue;
 
         const settingKey = rest.join(".");
-        return {
-            ...namespaced,
-            [namespace]: {
-                ...namespaced[namespace],
-                [settingKey]: value
-            }
-        };
-    }, {} as NamespacedSettings);
+        namespaced[namespace] = namespaced[namespace] || {};
+        namespaced[namespace][settingKey] = value;
+    }
+
+    return namespaced;
 }
